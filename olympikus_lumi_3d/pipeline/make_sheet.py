@@ -18,7 +18,12 @@ for v, i, label in pairs:
     ra = os.path.join(RD, f'{v}_rgba.png')
     if not os.path.exists(rp):
         continue
-    r = Image.open(rp).convert('RGB')
+    # cut-out like the reference photos: drop the semi-transparent contact shadow
+    rgba = np.asarray(Image.open(ra).convert('RGBA')).astype(np.float32) / 255.0
+    a = np.clip((rgba[..., 3:4] - 0.80) / 0.18, 0, 1)
+    comp = rgba[..., :3] * a + (1 - a)
+    r = Image.fromarray((np.clip(comp, 0, 1) * 255 + 0.5).astype(np.uint8))
+    r.save(os.path.join(RD, f'{v}_recorte.png'))
     w, h = r.size
     ph = Image.open(os.path.join(HERE, 'ref', f'652LUMILILA_{i}.jpg')).convert('RGB').resize((w, h), Image.LANCZOS)
     fg = np.load(os.path.join(HERE, 'ref', f'fg_{i}.npy'))
@@ -47,12 +52,12 @@ if rows:
     f1 = ImageFont.truetype(FONT, 40)
     f2 = ImageFont.truetype(FONT2, 22)
     f3 = ImageFont.truetype(FONT, 22)
-    d.text((pad, 40), 'Olympikus Lumi — referencia vs. gemelo digital', font=f1, fill=(40, 38, 60))
+    d.text((pad, 40), 'Olympikus Lumi · referencia y gemelo digital', font=f1, fill=(40, 38, 60))
     d.text((pad, 98), 'Fotos de estudio originales (izq.) y renders con cámara calibrada a cada foto (der.)', font=f2, fill=(110, 108, 130))
     y = head
     for label, a, b, iou in blocks:
         d.text((pad, y + 8), f'{label}', font=f3, fill=(40, 38, 60))
-        d.text((pad + 160, y + 8), f'IoU de silueta: {iou * 100:.1f} %', font=f2, fill=(110, 108, 130))
+        d.text((pad + 160, y + 8), 'Coincidencia de silueta (IoU): ' + f'{iou * 100:.1f}'.replace('.', ',') + ' %', font=f2, fill=(110, 108, 130))
         y += 48
         sheet.paste(a, (pad, y))
         sheet.paste(b, (tw - pad - b.width, y))

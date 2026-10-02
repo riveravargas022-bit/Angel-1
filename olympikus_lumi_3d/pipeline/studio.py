@@ -116,11 +116,16 @@ CAMS = {
     'q34_rear': ((-0.74, -0.62, 0.40), (-0.010, 0.0, 0.055), 120, 1.5),
     'top_down': ((0.0, 0.0, 1.30), (0.0, 0.0, 0.0), 120, 0.68),
     'macro_logo': ((-0.020, -0.40, 0.095), (-0.021, -0.040, 0.068), 135, 1.5),
-    'macro_tongue': ((0.10, -0.17, 0.27), (-0.004, -0.004, 0.105), 135, 1.5),
+    'macro_tongue': ((0.125, -0.075, 0.245), (-0.012, -0.004, 0.108), 135, 1.5),
     'macro_heel': ((-0.32, -0.24, 0.20), (-0.112, -0.004, 0.075), 135, 1.5),
     'macro_knit': ((0.090, -0.21, 0.080), (0.065, -0.043, 0.050), 135, 1.5),
     'sole': ((0.0, 0.0, 1.30), (0.0, 0.0, 0.0), 120, 0.68),
 }
+
+
+# focus points (label centre on the tongue etc.) and apertures for the macro shots
+FOCUS = {'macro_tongue': (-0.019, -0.0046, 0.1144)}
+FSTOP = {'macro_tongue': 9.0, 'macro_logo': 6.3}
 
 
 def setup_cam(name):
@@ -142,8 +147,9 @@ def setup_cam(name):
         cam.rotation_euler = Euler((0, 0, 0), 'XYZ')
     if name.startswith('macro'):
         cd.dof.use_dof = True
-        cd.dof.focus_distance = (Vector(loc) - Vector(tgt)).length
-        cd.dof.aperture_fstop = 5.6
+        fp = FOCUS.get(name, tgt)
+        cd.dof.focus_distance = (Vector(loc) - Vector(fp)).length
+        cd.dof.aperture_fstop = FSTOP.get(name, 5.6)
     else:
         cd.dof.use_dof = False
     return cam, aspect
