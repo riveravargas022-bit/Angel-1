@@ -52,6 +52,9 @@ if up.flipped:
     bm.to_mesh(upo.data); bm.free()
 bu.add_float_attr(upo, 'u_len', up.vu)
 bu.add_float_attr(upo, 'tau', up.vtau)
+_uvl = upo.data.uv_layers.new(name='UVMap')
+assert len(upo.data.loops) == len(up.loop_uv), (len(upo.data.loops), len(up.loop_uv))
+_uvl.data.foreach_set('uv', up.loop_uv.astype(np.float32).ravel())
 sol = upo.modifiers.new('Thickness', 'SOLIDIFY')
 sol.thickness = 2.2 * MM
 sol.offset = -1.0

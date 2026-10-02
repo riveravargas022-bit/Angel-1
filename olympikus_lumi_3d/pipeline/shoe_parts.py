@@ -58,8 +58,15 @@ class Upper:
         for i in range(n - 1):
             for j in range(nt - 1):
                 F.append((i * nt + j, i * nt + j + 1, (i + 1) * nt + j + 1, (i + 1) * nt + j))
-        Vw, Fw, inv = g.weld(grid.reshape(-1, 3), F, 1e-6)
+        Vw, Fw, inv, corners = g.weld_corners(grid.reshape(-1, 3), F, 1e-6)
         self.V, self.F, self.inv = Vw, Fw, inv
+        # structured UV: U = arc length along the perimeter rows (mid-wall), V = featherline -> edge
+        mid = grid[:, nt // 2, :]
+        su = np.concatenate([[0], np.cumsum(np.linalg.norm(np.diff(mid, axis=0), axis=1))])
+        su = su / su[-1]
+        sv = np.linspace(0, 1, nt)
+        uv_orig = np.stack([np.repeat(su, nt), np.tile(sv, n)], 1)
+        self.loop_uv = np.concatenate([uv_orig[c] for c in corners], 0)
         uu = np.repeat(self.ru, nt)
         self.vu = np.zeros(len(Vw)); self.vu[inv] = uu
         tt = np.tile(np.linspace(0, 1, nt), n)

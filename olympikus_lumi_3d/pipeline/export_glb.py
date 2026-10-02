@@ -26,12 +26,12 @@ sc.render.bake.margin = 6
 
 # name: (texture size, decimate ratio, roughness, sheen)
 PLAN = {
-    'Upper_Knit': (2048, 0.45, 0.78, 0.5),
-    'Midsole': (2048, 0.45, 0.58, 0.0),
+    'Upper_Knit': ((4096, 1024), 0.45, 0.78, 0.5),     # perimeter x wall-height UV: keep texels ~isotropic
+    'Midsole': (2048, 0.30, 0.58, 0.0),
     'Collar_Padding': (1024, 1.0, 0.72, 0.6),
     'Tongue': (1024, 0.7, 0.70, 0.5),
-    'Eyestay_TPU': (1024, 0.5, 0.42, 0.0),
-    'Laces': (1024, 1.0, 0.74, 0.6),
+    'Eyestay_TPU': (1024, 0.25, 0.42, 0.0),
+    'Laces': (1024, 0.6, 0.74, 0.6),
     'Logo_Badge': (1024, 0.06, 0.33, 0.0),
     'Insole': (1024, 0.5, 0.85, 0.3),
     'Heel_Pull_Tab': (512, 1.0, 0.60, 0.5),
@@ -48,10 +48,26 @@ for name, (tex, ratio, rough, sheen) in PLAN.items():
     src = bpy.data.objects.get(name)
     if src is None:
         continue
-    tex = max(128, int(tex * TSCALE))
+    tw, th = (tex if isinstance(tex, tuple) else (tex, tex))
+    tw, th = max(128, int(tw * TSCALE)), max(128, int(th * TSCALE))
     # evaluated copy with modifiers applied
+    # inner shell / rim of solidified parts -> their own slot so they never overwrite the outer bake
+    n_slots = len(src.data.materials)
+    sol_mods = [m for m in src.modifiers if m.type == 'SOLIDIFY']
+    saved_off = [(m, m.material_offset, m.material_offset_rim) for m in sol_mods]
+    if sol_mods and n_slots == 1:
+        src.data.materials.append(src.data.materials[0])
+        for m in sol_mods:
+            m.material_offset = 1
+            m.material_offset_rim = 1
+    bpy.context.view_layer.update()
+    deps = bpy.context.evaluated_depsgraph_get()
     ev = src.evaluated_get(deps)
     me = bpy.data.meshes.new_from_object(ev, preserve_all_data_layers=True, depsgraph=deps)
+    for m, o1, o2 in saved_off:
+        m.material_offset, m.material_offset_rim = o1, o2
+    if sol_mods and n_slots == 1:
+        src.data.materials.pop(index=1)
     ob = bpy.data.objects.new('GLB_' + name, me)
     sc.collection.objects.link(ob)
     ob.matrix_world = src.matrix_world.copy()
@@ -68,8 +84,8 @@ for name, (tex, ratio, rough, sheen) in PLAN.items():
         dm.use_collapse_triangulate = True
         bpy.ops.object.modifier_apply(modifier='dec')
     # keep the build UVs when present (tongue/eyestay/laces/badge/decal); else unwrap
-    need_unwrap = name in ('Upper_Knit', 'Midsole', 'Collar_Padding', 'Insole', 'Heel_Pull_Tab',
-                           'Throat_Binding', 'Eyelet_Rims', 'Eyelet_Holes', 'Eyestay_TPU')
+    need_unwrap = name in ('Midsole', 'Collar_Padding', 'Insole', 'Heel_Pull_Tab',
+                           'Throat_Binding', 'Eyelet_Rims', 'Eyelet_Holes')
     if need_unwrap or len(me.uv_layers) == 0:
         keep = [uv.name for uv in me.uv_layers]
         uvb = me.uv_layers.new(name='BakeUV')
@@ -82,19 +98,21 @@ for name, (tex, ratio, rough, sheen) in PLAN.items():
         uvb = me.uv_layers.active
         uvb.name = 'BakeUV'
     # images + active texture node in every material slot
-    img_c = bpy.data.images.new(f'{name}_basecolor', tex, tex, alpha=False)
-    img_n = bpy.data.images.new(f'{name}_normal', tex, tex, alpha=False)
+    img_c = bpy.data.images.new(f'{name}_basecolor', tw, th, alpha=False)
+    img_n = bpy.data.images.new(f'{name}_normal', tw, th, alpha=False)
     img_n.colorspace_settings.name = 'Non-Color'
     nodes_c = []
-    for m in me.materials:
+    img_dummy = bpy.data.images.new(f'{name}_dummy', 64, 64, alpha=False)
+    for si, m in enumerate(me.materials):
         if m is None:
             continue
         nt = m.node_tree
         uvn = nt.nodes.new('ShaderNodeUVMap'); uvn.uv_map = 'BakeUV'
-        tn = nt.nodes.new('ShaderNodeTexImage'); tn.image = img_c
+        tn = nt.nodes.new('ShaderNodeTexImage'); tn.image = img_c if si == 0 else img_dummy
         nt.links.new(uvn.outputs[0], tn.inputs['Vector'])
         nt.nodes.active = tn
-        nodes_c.append(tn)
+        if si == 0:
+            nodes_c.append(tn)
     # make the bake UV the render-active one so the bake writes into it
     for uv in me.uv_layers:
         uv.active_render = (uv.name == 'BakeUV')
@@ -141,12 +159,30 @@ for name, (tex, ratio, rough, sheen) in PLAN.items():
                 b.inputs['Base Color'].default_value = (0.012, 0.012, 0.014, 1)
                 nt.links.remove(nt.links[[l.to_socket for l in nt.links].index(b.inputs['Base Color'])]) if b.inputs['Base Color'].is_linked else None
                 break
+    # secondary slots (inner shell, rim, lining) -> plain colour taken from the source material
+    extra = []
+    for si, m in enumerate(list(me.materials)[1:], start=1):
+        pm = bpy.data.materials.new(f'GLB_{name}_inner{si}')
+        pm.use_nodes = True
+        pb = pm.node_tree.nodes['Principled BSDF']
+        col = (0.8, 0.8, 0.8, 1)
+        for n_ in (m.node_tree.nodes if m else []):
+            if n_.type == 'BSDF_PRINCIPLED' and not n_.inputs['Base Color'].is_linked:
+                col = tuple(n_.inputs['Base Color'].default_value)
+                break
+        if name == 'Upper_Knit':
+            col = (*__import__('bl_util').hex_lin('#A2A9C8'), 1)
+        pb.inputs['Base Color'].default_value = col
+        pb.inputs['Roughness'].default_value = rough
+        extra.append(pm)
     me.materials.clear()
     me.materials.append(gm)
+    for pm in extra:
+        me.materials.append(pm)
     # drop the other UV maps (keep only BakeUV)
-    for uv in list(me.uv_layers):
-        if uv.name != 'BakeUV':
-            me.uv_layers.remove(uv)
+    for nm_ in [uv.name for uv in me.uv_layers if uv.name != 'BakeUV' and not uv.name.startswith('.')]:
+        if nm_ in me.uv_layers:
+            me.uv_layers.remove(me.uv_layers[nm_])
     for a in list(me.attributes):
         if a.name in ('u_len', 'tau', 'ts', 'tt', 'tfront', 'tarc', 'ty', 'es_s', 'es_t', 'tab_side'):
             try:
@@ -154,7 +190,7 @@ for name, (tex, ratio, rough, sheen) in PLAN.items():
             except Exception:
                 pass
     out_objs.append(ob)
-    print('baked', name, len(me.vertices), 'verts', tex, 'px')
+    print('baked', name, len(me.vertices), 'verts', tw, 'x', th, 'px')
 
 # export only the baked objects
 bpy.ops.object.select_all(action='DESELECT')

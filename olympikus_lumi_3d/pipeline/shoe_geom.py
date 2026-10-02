@@ -83,42 +83,42 @@ def footprint(u):
 # Midsole sidewall sculpt: crease curves (u, h) measured from photo shading
 # ----------------------------------------------------------------------------
 CREASES = {
+    # (crease line points (u, h/L), depth mm, recessed band above mm, ledge width below mm)
     'lat': [
-        # (points, depth_mm, width_above_mm, width_below_mm)
         ([(0.07, 0.170), (0.11, 0.161), (0.18, 0.152), (0.25, 0.147), (0.33, 0.143), (0.42, 0.134),
           (0.51, 0.116), (0.60, 0.096), (0.69, 0.086), (0.78, 0.083), (0.86, 0.104), (0.92, 0.128),
-          (0.955, 0.150)], 1.4, 1.3, 4.5),
+          (0.955, 0.150)], 0.9, 2.6, 0.55),
         ([(0.030, 0.186), (0.045, 0.176), (0.09, 0.150), (0.13, 0.133), (0.23, 0.106), (0.32, 0.093),
           (0.41, 0.100), (0.50, 0.095), (0.59, 0.073), (0.68, 0.060), (0.77, 0.058), (0.84, 0.066)],
-         2.4, 1.6, 6.0),
+         4.2, 14.0, 0.90),
         ([(0.005, 0.141), (0.04, 0.125), (0.06, 0.111), (0.08, 0.100), (0.11, 0.092), (0.13, 0.089),
-          (0.17, 0.091), (0.21, 0.095), (0.26, 0.098)], 1.9, 1.3, 5.0),
+          (0.17, 0.091), (0.21, 0.095), (0.26, 0.098)], 2.8, 8.5, 0.75),
         ([(0.012, 0.085), (0.03, 0.076), (0.05, 0.064), (0.07, 0.052), (0.10, 0.039), (0.13, 0.030),
-          (0.16, 0.024)], 1.5, 1.2, 4.0),
+          (0.16, 0.024)], 1.8, 5.5, 0.65),
         ([(0.21, 0.066), (0.25, 0.065), (0.29, 0.057), (0.33, 0.046), (0.37, 0.034), (0.40, 0.026)],
-         1.2, 1.2, 4.0),
+         1.2, 5.0, 0.60),
         ([(0.33, 0.079), (0.37, 0.071), (0.41, 0.061), (0.45, 0.053), (0.50, 0.043), (0.56, 0.036),
-          (0.61, 0.038), (0.65, 0.043)], 1.3, 1.2, 4.0),
+          (0.61, 0.038), (0.65, 0.043)], 1.6, 5.5, 0.65),
         ([(0.72, 0.040), (0.76, 0.050), (0.81, 0.062), (0.85, 0.077), (0.89, 0.094), (0.93, 0.115)],
-         1.2, 1.2, 4.0),
+         1.4, 6.0, 0.60),
     ],
     'med': [
         ([(0.07, 0.172), (0.12, 0.160), (0.17, 0.152), (0.23, 0.149), (0.30, 0.152), (0.35, 0.153),
           (0.42, 0.145), (0.50, 0.129), (0.57, 0.114), (0.65, 0.102), (0.73, 0.095), (0.80, 0.096),
-          (0.88, 0.113), (0.95, 0.145)], 1.4, 1.3, 4.5),
+          (0.88, 0.113), (0.95, 0.145)], 0.9, 2.6, 0.55),
         ([(0.030, 0.182), (0.08, 0.150), (0.12, 0.134), (0.15, 0.131), (0.22, 0.109), (0.30, 0.094),
           (0.38, 0.100), (0.46, 0.110), (0.54, 0.097), (0.62, 0.081), (0.70, 0.072), (0.78, 0.072),
-          (0.84, 0.078)], 2.4, 1.6, 6.0),
+          (0.84, 0.078)], 3.0, 10.0, 0.75),
         ([(0.005, 0.141), (0.04, 0.128), (0.06, 0.117), (0.08, 0.104), (0.10, 0.096), (0.12, 0.094),
-          (0.15, 0.089), (0.20, 0.094), (0.25, 0.098)], 1.9, 1.3, 5.0),
+          (0.15, 0.089), (0.20, 0.094), (0.25, 0.098)], 2.8, 8.5, 0.75),
         ([(0.012, 0.080), (0.04, 0.064), (0.07, 0.044), (0.09, 0.030), (0.12, 0.020), (0.15, 0.015)],
-         1.5, 1.2, 4.0),
+         1.4, 5.5, 0.60),
         ([(0.22, 0.066), (0.26, 0.063), (0.29, 0.060), (0.33, 0.052), (0.36, 0.043), (0.39, 0.033)],
-         1.2, 1.2, 4.0),
+         1.2, 5.0, 0.60),
         ([(0.35, 0.081), (0.38, 0.076), (0.42, 0.070), (0.47, 0.060), (0.51, 0.050), (0.57, 0.045),
-          (0.63, 0.051), (0.67, 0.057)], 1.3, 1.2, 4.0),
+          (0.63, 0.051), (0.67, 0.057)], 1.6, 5.5, 0.65),
         ([(0.76, 0.058), (0.80, 0.069), (0.84, 0.081), (0.89, 0.099), (0.94, 0.119), (0.965, 0.132)],
-         1.2, 1.2, 4.0),
+         1.4, 6.0, 0.60),
     ],
 }
 
@@ -139,7 +139,11 @@ def _crease_disp(u, z, side):
         if u0 < 0.035:
             fade = np.where(u < u0, 1.0, fade)
         t = (z - zk)
-        g = np.where(t > 0, np.exp(-(t / (wa * 1e-3)) ** 2), np.exp(-(t / (wb * 1e-3)) ** 2))
+        # shingle profile (studio photos): the band above each crease recedes progressively and the
+        # next layer steps out sharply right below the crease line -> crisp up-facing ledge
+        ramp = np.clip(1.0 - t / (wa * 1e-3), 0.0, 1.0) ** 1.6
+        ledge = np.exp(-(t / (wb * 1e-3)) ** 2)
+        g = np.where(t > 0, ramp, ledge)
         d += depth * 1e-3 * g * fade
     return d
 
@@ -225,7 +229,7 @@ def midsole_top(x, y):
     return np.where(inside, z_in, z_out)
 
 
-def midsole_mesh(nu=380, nh=84):
+def midsole_mesh(nu=420, nh=170):
     """Structured ring mesh. Ring order: lateral half (top-center -> bottom-center),
     then medial half (bottom-center -> top-center)."""
     s = np.linspace(0, 1, nu)
@@ -247,7 +251,7 @@ def midsole_mesh(nu=380, nh=84):
             rb = min(0.0085, 0.45 * H, 0.45 * W)
             rt = min(0.0022, 0.30 * H, 0.30 * W)
             top = np.stack([yy, zt], 1)
-            nw = 24
+            nw = 110
             wall = np.stack([np.full(nw, W), np.linspace(zt[-1], zb[i], nw)], 1)[1:]
             nb = 18
             bot = np.stack([np.linspace(W, 0, nb), np.full(nb, zb[i])], 1)[1:]
@@ -298,6 +302,27 @@ def weld(V, F, tol=2e-6):
     return V2, out, inv
 
 
+def weld_corners(V, F, tol=2e-6):
+    """like weld(), but also returns, for every kept face, the ORIGINAL corner indices that survived
+    (same order as the welded face) -> lets callers carry per-corner data such as UVs."""
+    key = np.round(V / tol).astype(np.int64)
+    _, first, inv = np.unique(key, axis=0, return_index=True, return_inverse=True)
+    inv = inv.ravel()
+    V2 = V[first]
+    out, corners = [], []
+    for f in F:
+        uniq, orig = [], []
+        for i in f:
+            v = int(inv[i])
+            if v not in uniq:
+                uniq.append(v)
+                orig.append(int(i))
+        if len(uniq) >= 3:
+            out.append(tuple(uniq))
+            corners.append(orig)
+    return V2, out, inv, corners
+
+
 def vertex_normals_poly(V, F):
     n = np.zeros_like(V)
     for f in F:
@@ -340,7 +365,7 @@ def build_midsole():
     d = crease_disp(uw, Vw[:, 2], Vw[:, 1])
     zb = bot_env(uw) * L
     ztop = midsole_top(Vw[:, 0], Vw[:, 1])
-    wallw = smoothstep(zb + 0.0025, zb + 0.009, Vw[:, 2]) * (1 - smoothstep(ztop - 0.003, ztop - 0.0006, Vw[:, 2]))
+    wallw = smoothstep(zb + 0.0020, zb + 0.0065, Vw[:, 2]) * (1 - smoothstep(ztop - 0.0022, ztop - 0.0004, Vw[:, 2]))
     wallw *= smoothstep(0.45, 0.85, nl[:, 0])
     Vd = Vw - nh * (d * wallw)[:, None]
     return Vd, Fw, uw
