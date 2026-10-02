@@ -262,14 +262,27 @@ def midsole_material():
     nt.link(comb.outputs[0], th.inputs['Vector'])
     downw = nt.math('MAXIMUM', nt.math('MULTIPLY', sepn.outputs[2], None, vb=-1.0), None, vb=0.0)
     downw = nt.math('POWER', downw, None, vb=4.0)
-    tread = nt.math('MULTIPLY', th.outputs['Color'], downw)
-    hsum = nt.math('ADD', nt.math('MULTIPLY', nz_.outputs['Fac'], None, vb=0.04), tread)
+    # tread relief: band-passed sole photo (grip dots, lug edges), centred on 0.5
+    hb = nt.node('ShaderNodeRGBToBW'); nt.link(th.outputs['Color'], hb.inputs[0])
+    tread = nt.math('MULTIPLY', nt.math('SUBTRACT', hb.outputs[0], None, vb=0.5), downw)
+    hsum = nt.math('ADD', nt.math('MULTIPLY', nz_.outputs['Fac'], None, vb=0.04), nt.math('MULTIPLY', tread, None, vb=1.6))
     bump = nt.node('ShaderNodeBump')
     bump.inputs['Strength'].default_value = 1.0
-    bump.inputs['Distance'].default_value = 0.0016
+    bump.inputs['Distance'].default_value = 0.0006
     nt.link(hsum, bump.inputs['Height'])
     nt.link(bump.outputs[0], b.inputs['Normal'])
-    b.inputs['Base Color'].default_value = lin('#EBE5DA')
+    # channel shadows / lug walls / debossed logo from the de-lit sole photo -> albedo multiplier
+    oi = json.load(open(TEX('outsole_info.json')))
+    ao = nt.img(TEX('outsole_ao.png'), 'Non-Color')
+    nt.link(comb.outputs[0], ao.inputs['Vector'])
+    ab = nt.node('ShaderNodeRGBToBW'); nt.link(ao.outputs['Color'], ab.inputs[0])
+    ratio = nt.math('MULTIPLY', ab.outputs[0], None, vb=oi.get('ao_scale', 1.25))
+    fac = nt.math('ADD', nt.math('MULTIPLY', nt.math('MULTIPLY', nt.math('SUBTRACT', ratio, None, vb=1.0), None, vb=1.7), downw), None, vb=1.0)
+    basec = nt.node('ShaderNodeRGB')
+    basec.outputs[0].default_value = lin('#EBE5DA')
+    scl = nt.node('ShaderNodeVectorMath', operation='SCALE')
+    nt.link(basec.outputs[0], scl.inputs[0]); nt.link(fac, scl.inputs['Scale'])
+    nt.link(scl.outputs[0], b.inputs['Base Color'])
     set_bsdf(b, Roughness=0.58)
     b.inputs['Specular IOR Level'].default_value = 0.42
     b.inputs['Subsurface Weight'].default_value = 0.05

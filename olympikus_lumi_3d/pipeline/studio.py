@@ -250,9 +250,12 @@ for v in VIEWS:
     floor.hide_render = False
     if v in ('top_down',):
         root.rotation_euler = (0, 0, math.radians(-90))     # heel at the top, toe at the bottom (as the reference)
+    sc.view_settings.exposure = EXPOSURE
     if v == 'sole':
         root.rotation_euler = (math.pi, 0, math.radians(90))
         root.location = (0, 0, 0.140)
+        floor.hide_render = True                 # flat-lay cut-out, like the reference sole photo
+        sc.view_settings.exposure = EXPOSURE - 0.45
     bpy.context.view_layer.update()
     if v.startswith('match_'):
         cam, aspect = match_cam(v)

@@ -427,34 +427,39 @@ if want('knit'):
 # 6. outsole tread height from the sole photo
 # ---------------------------------------------------------------------------
 if want('outsole'):
+    # The sole photo is shot straight on, like the sole render: project it.
+    #  outsole_ao.png : de-lit luminance ratio (channel shadows, lug walls, debossed logo) -> albedo multiplier
+    #  outsole_h.png  : band-passed luminance -> bump (grip dots + lug edges)
     img = load(5)
     fg = np.load(os.path.join(HERE, 'ref', 'fg_5.npy'))
     lum = img.mean(2)
     H, W = lum.shape
-    # sole region only (exclude acrylic stand below the heel)
     sole = fg.copy()
-    sole[3925:, :] = False
+    sole[3925:, :] = False                      # acrylic stand under the heel
+    sole = cv2.erode(sole.astype(np.uint8), np.ones((7, 7), np.uint8)) > 0
     rows = np.nonzero(sole.any(1))[0]
     cols = np.nonzero(sole.any(0))[0]
     y0, y1 = rows.min(), rows.max()
     x0, x1 = cols.min(), cols.max()
-    shade = cv2.GaussianBlur(lum * sole, (0, 0), 40) / np.maximum(cv2.GaussianBlur(sole.astype(np.float32), (0, 0), 40), 1e-3)
-    rel = lum / np.maximum(shade, 1)
-    # grooves are darker lines (shadowed walls); lug faces bright & flat
-    hp = rel - cv2.GaussianBlur(rel, (0, 0), 14)
-    groove = cv2.GaussianBlur(np.clip(-hp * 9, 0, 1), (0, 0), 2.5)
-    gm = (groove > 0.18).astype(np.uint8)
-    gm = cv2.morphologyEx(gm, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
-    gm = cv2.dilate(gm, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (13, 13))).astype(np.float32)
-    hmap = 1 - cv2.GaussianBlur(gm, (0, 0), 5.5)
-    fine = np.clip(0.5 + (rel - cv2.GaussianBlur(rel, (0, 0), 2.0)) * 6, 0, 1)
-    hmap = np.clip(hmap * 0.85 + (fine - 0.5) * 0.10 + 0.08, 0, 1)
-    hmap[~sole] = 0.0
-    crop = hmap[y0:y1 + 1, x0:x1 + 1]
-    save16(T('outsole_h.png'), crop)
-    json.dump(dict(x0=int(x0), x1=int(x1), y0=int(y0), y1=int(y1)), open(T('outsole_info.json'), 'w'))
-    cv2.imwrite(os.path.join(HERE, 'out', 'outsole_h_prev.png'), cv2.resize((crop * 255).astype(np.uint8), None, fx=0.3, fy=0.3))
-    print('outsole', crop.shape)
+    w = cv2.GaussianBlur(sole.astype(np.float32), (0, 0), 30)
+    lo = cv2.GaussianBlur(lum * sole, (0, 0), 30) / np.maximum(w, 1e-3)
+    ratio = np.where(sole, lum / np.maximum(lo, 1.0), 1.0)
+    ratio = np.clip(ratio, 0.72, 1.12)
+    # fade to neutral at the outline (avoid the photo's rim shading on the bevel)
+    d_edge = cv2.distanceTransform(sole.astype(np.uint8), cv2.DIST_L2, 5)
+    fade = np.clip(d_edge / 40.0, 0, 1)
+    ratio = 1.0 + (ratio - 1.0) * fade
+    band = cv2.GaussianBlur(lum, (0, 0), 1.0) - cv2.GaussianBlur(lum, (0, 0), 10.0)
+    hgt = 0.5 + 0.5 * np.clip(band / 22.0, -1, 1) * fade
+    hgt = np.where(sole, hgt, 0.5)
+    c_ao = ratio[y0:y1 + 1, x0:x1 + 1] / 1.25
+    c_h = hgt[y0:y1 + 1, x0:x1 + 1]
+    save16(T('outsole_ao.png'), c_ao)
+    save16(T('outsole_h.png'), c_h)
+    json.dump(dict(x0=int(x0), x1=int(x1), y0=int(y0), y1=int(y1), ao_scale=1.25), open(T('outsole_info.json'), 'w'))
+    cv2.imwrite(os.path.join(HERE, 'out', 'outsole_h_prev.png'), cv2.resize((c_ao / c_ao.max() * 255).astype(np.uint8), None, fx=0.3, fy=0.3))
+    print('outsole', c_h.shape)
+
 
 # ---------------------------------------------------------------------------
 # 7. tongue (front): mint ribbed top band, LUMI label, open air-mesh below
